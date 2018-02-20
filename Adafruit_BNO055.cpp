@@ -92,25 +92,32 @@ bool Adafruit_BNO055::begin(clsWire *pWire, adafruit_bno055_opmode_t mode)
   delay(10);
 
   write8(BNO055_PAGE_ID_ADDR, 0);
+  
+  
+  
+  delay(10);
 
   /* Set the output units */
-  /*
-  uint8_t unitsel = (0 << 7) | // Orientation = Android
+ /*
+  uint8_t unitsel = (1 << 7) | // Orientation = Android
                     (0 << 4) | // Temperature = Celsius
                     (0 << 2) | // Euler = Degrees
                     (1 << 1) | // Gyro = Rads
                     (0 << 0);  // Accelerometer = m/s^2
   write8(BNO055_UNIT_SEL_ADDR, unitsel);
-  */
-
+ 
+*/
   /* Configure axis mapping (see section 3.4) */
-  /*
-  write8(BNO055_AXIS_MAP_CONFIG_ADDR, REMAP_CONFIG_P2); // P0-P7, Default is P1
+/*  
   delay(10);
-  write8(BNO055_AXIS_MAP_SIGN_ADDR, REMAP_SIGN_P2); // P0-P7, Default is P1
+  write8(BNO055_AXIS_MAP_CONFIG_ADDR, REMAP_CONFIG_P0); // P0-P7, Default is P1
   delay(10);
-  */
+  write8(BNO055_AXIS_MAP_SIGN_ADDR, REMAP_SIGN_P0); // P0-P7, Default is P1
+  delay(10);
+*/
   
+  
+
   write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
   delay(10);
   /* Set the requested operating mode (see section 3.3) */
@@ -398,9 +405,9 @@ bool Adafruit_BNO055::getEvent(sensors_event_t *event)
 
   /* Get a Euler angle sample for orientation */
   imu::Vector<3> euler = getVector(Adafruit_BNO055::VECTOR_EULER);
-  event->orientation.x = euler.x();
-  event->orientation.y = euler.y();
-  event->orientation.z = euler.z();
+  event->orientation.heading = euler.x();
+  event->orientation.roll = euler.y();
+  event->orientation.pitch = euler.z();
 
   return true;
 }
