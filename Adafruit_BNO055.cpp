@@ -638,7 +638,11 @@ bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t 
     #else
       _pWire->send(reg);
     #endif
-    _pWire->endTransmission();
+    if (_pWire->endTransmission() != 0)
+    {
+        _pWire->unlock();
+        return false;
+    }
     _pWire->requestFrom(_address, (byte)len);
 
     for (uint8_t i = 0; i < len; i++)
