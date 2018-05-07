@@ -295,9 +295,15 @@ imu::Vector<3> Adafruit_BNO055::getVector(adafruit_vector_type_t vector_type)
 
   int16_t x, y, z;
   x = y = z = 0;
+  
+   _lastResult = adafruit_result_SUCCESS;
 
   /* Read vector data (6 bytes) */
-  readLen((adafruit_bno055_reg_t)vector_type, buffer, 6);
+  if (!readLen((adafruit_bno055_reg_t)vector_type, buffer, 6))
+  {
+      _lastResult = adafruit_result_FAIL;
+      return {0,0,0};
+  }
 
   x = ((int16_t)buffer[0]) | (((int16_t)buffer[1]) << 8);
   y = ((int16_t)buffer[2]) | (((int16_t)buffer[3]) << 8);
@@ -405,6 +411,8 @@ bool Adafruit_BNO055::getEvent(sensors_event_t *event)
 
   /* Get a Euler angle sample for orientation */
   imu::Vector<3> euler = getVector(Adafruit_BNO055::VECTOR_EULER);
+  
+  if ( _lastResult != adafruit_result_SUCCESS ) return false;
   event->orientation.heading = euler.x();
   event->orientation.roll = euler.y();
   event->orientation.pitch = euler.z();
@@ -629,21 +637,34 @@ byte Adafruit_BNO055::read8(adafruit_bno055_reg_t reg )
 /**************************************************************************/
 bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
 {
+   
     
   if (_pWire->lock()) 
   {
-    _pWire->beginTransmission(_address);
+                      
+    if (!_pWire->beginTransmission(_address) ) {        
+     
+        _pWire->unlock();
+        return false;        
+    }
+    
     #if ARDUINO >= 100
       _pWire->write((uint8_t)reg);
     #else
       _pWire->send(reg);
     #endif
     if (_pWire->endTransmission() != 0)
-    {
+    {      
         _pWire->unlock();
         return false;
     }
-    _pWire->requestFrom(_address, (byte)len);
+    if (_pWire->requestFrom(_address, (byte)len) != len )
+    {     
+        _pWire->unlock();
+        return false;        
+    }
+    
+    
 
     for (uint8_t i = 0; i < len; i++)
     {

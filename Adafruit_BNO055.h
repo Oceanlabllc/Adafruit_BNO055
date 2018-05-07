@@ -280,6 +280,16 @@ class Adafruit_BNO055 : public Adafruit_Sensor
       VECTOR_LINEARACCEL   = BNO055_LINEAR_ACCEL_DATA_X_LSB_ADDR,
       VECTOR_GRAVITY       = BNO055_GRAVITY_DATA_X_LSB_ADDR
     } adafruit_vector_type_t;
+    
+    
+    
+    
+    typedef enum
+    {
+        adafruit_result_SUCCESS,
+        adafruit_result_FAIL,
+        adafruit_result_UNKNOWN,        
+    } adafruit_result_type_t;
 
 #if defined (ARDUINO_SAMD_ZERO) && ! (ARDUINO_SAMD_FEATHER_M0)
 #error "On an arduino Zero, BNO055's ADR pin must be high. Fix that, then delete this line."
@@ -312,6 +322,10 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     void  setSensorOffsets(const uint8_t* calibData);
     void  setSensorOffsets(const adafruit_bno055_offsets_t &offsets_type);
     bool  isFullyCalibrated(void);
+    inline adafruit_result_type_t lastResult(void) { return _lastResult;}
+    /**< Returns the status of the last read or write to the driver. Used
+     * to determine if an error occured during transfer.
+     */
 
   private:
     byte  read8   ( adafruit_bno055_reg_t );
@@ -322,6 +336,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     int32_t _sensorID;
     adafruit_bno055_opmode_t _mode;
     clsWire *_pWire;
+    adafruit_result_type_t _lastResult = adafruit_result_UNKNOWN;
 };
 
 #endif
