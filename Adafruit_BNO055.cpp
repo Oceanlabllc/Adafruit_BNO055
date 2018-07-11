@@ -345,24 +345,37 @@ imu::Vector<3> Adafruit_BNO055::getVector(adafruit_vector_type_t vector_type)
 /**************************************************************************/
 imu::Quaternion Adafruit_BNO055::getQuat(void)
 {
-  uint8_t buffer[8];
-  memset (buffer, 0, 8);
-
+  
+  bool retVal = false; //true if success, false if failure
+  const double scale = (1.0 / (1<<14));
   int16_t x, y, z, w;
   x = y = z = w = 0;
+  
+  for (;;) //Fake loop to get break command
+  {
+  
+    uint8_t buffer[8];
+    memset (buffer, 0, 8);
 
-  /* Read quat data (8 bytes) */
-  readLen(BNO055_QUATERNION_DATA_W_LSB_ADDR, buffer, 8);
-  w = (((uint16_t)buffer[1]) << 8) | ((uint16_t)buffer[0]);
-  x = (((uint16_t)buffer[3]) << 8) | ((uint16_t)buffer[2]);
-  y = (((uint16_t)buffer[5]) << 8) | ((uint16_t)buffer[4]);
-  z = (((uint16_t)buffer[7]) << 8) | ((uint16_t)buffer[6]);
+    
 
-  /* Assign to Quaternion */
-  /* See http://ae-bst.resource.bosch.com/media/products/dokumente/bno055/BST_BNO055_DS000_12~1.pdf
-     3.6.5.5 Orientation (Quaternion)  */
-  const double scale = (1.0 / (1<<14));
-  imu::Quaternion quat(scale * w, scale * x, scale * y, scale * z);
+    /* Read quat data (8 bytes) */
+    if (!readLen(BNO055_QUATERNION_DATA_W_LSB_ADDR, buffer, 8)) break;
+    w = (((uint16_t)buffer[1]) << 8) | ((uint16_t)buffer[0]);
+    x = (((uint16_t)buffer[3]) << 8) | ((uint16_t)buffer[2]);
+    y = (((uint16_t)buffer[5]) << 8) | ((uint16_t)buffer[4]);
+    z = (((uint16_t)buffer[7]) << 8) | ((uint16_t)buffer[6]);
+
+    /* Assign to Quaternion */
+    /* See http://ae-bst.resource.bosch.com/media/products/dokumente/bno055/BST_BNO055_DS000_12~1.pdf
+       3.6.5.5 Orientation (Quaternion)  */   
+    
+    retVal = true;
+    break;
+    
+  }  
+    
+  imu::Quaternion quat(scale * w, scale * x, scale * y, scale * z, retVal);
   return quat;
 }
 
@@ -629,31 +642,47 @@ byte Adafruit_BNO055::read8(adafruit_bno055_reg_t reg )
 /**************************************************************************/
 bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
 {
+   bool retVal = false;  //Default return value. Its an error until we complete the process.
+   
     
-  if (_pWire->lock()) 
-  {
-    _pWire->beginTransmission(_address);
-    #if ARDUINO >= 100
-      _pWire->write((uint8_t)reg);
-    #else
-      _pWire->send(reg);
-    #endif
-    _pWire->endTransmission();
-    _pWire->requestFrom(_address, (byte)len);
+   if (_pWire->lock()) 
+   {
+       
+     /** In each step of the process we will break out of this section
+      * if we get an error. The retVal will be set to false (error)
+      * until the hit the bottom of the fake for loop.
+      */  
+       
+     for (;;)   //Fake loop to use break
+     {
+       
+        _pWire->beginTransmission(_address);
+        #if ARDUINO >= 100
+          if (_pWire->write((uint8_t)reg) == 0) break;
+        #else
+          if (_pWire->send(reg) == 0) break; //break on error
+        #endif
+        if (_pWire->endTransmission() != i2cError_NONE) break; //break on error
+        
+        if ( _pWire->requestFrom(_address, (byte)len) != len ) break; //break on error
 
-    for (uint8_t i = 0; i < len; i++)
-    {
-      #if ARDUINO >= 100
-        buffer[i] = _pWire->read();
-      #else
-        buffer[i] = _pWire->receive();
-      #endif
-    }
-    
+        for (uint8_t i = 0; i < len; i++)
+        {
+          #if ARDUINO >= 100
+            buffer[i] = _pWire->read();
+          #else
+            buffer[i] = _pWire->receive();
+          #endif
+        }
+        
+        retVal = true;
+        break;
+        
+     } // end for(;;))
     _pWire->unlock();
   } 
   else return false;
-
   /* ToDo: Check for errors! */
-  return true;
+  return retVal;
+     
 }

@@ -44,6 +44,10 @@ public:
 
     Quaternion(double w, Vector<3> vec):
         _w(w), _x(vec.x()), _y(vec.y()), _z(vec.z()) {}
+    
+    Quaternion(double w, double x, double y, double z, bool valid):
+        _w(w), _x(x), _y(y), _z(z), _valid(valid)  {}
+
 
     double& w()
     {
@@ -77,6 +81,11 @@ public:
     double z() const
     {
         return _z;
+    }
+    
+    bool valid() const
+    {
+        return _valid;
     }
 
     double magnitude() const
@@ -265,6 +274,7 @@ public:
 
 private:
     double _w, _x, _y, _z;
+    bool _valid = false;
 };
 
 } // namespace
